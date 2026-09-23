@@ -1,0 +1,46 @@
+{
+  "name": "adactus",
+  "version": "0.1.0",
+  "description": "A PTY supervisor that wraps interactive AI coding agents (claude, opencode, codex), detects stalls, false completions and context saturation, and injects text to keep them working.",
+  "keywords": [
+    "ai",
+    "agent",
+    "claude-code",
+    "codex",
+    "opencode",
+    "pty",
+    "cli",
+    "supervisor"
+  ],
+  "author": "Omar Hernandez (https://github.com/ohernandezdev)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ohernandezdev/adactus.git"
+  },
+  "homepage": "https://github.com/ohernandezdev/adactus#readme",
+  "bugs": {
+    "url": "https://github.com/ohernandezdev/adactus/issues"
+  },
+  "type": "module",
+  "bin": {
+    "adactus": "./bin/adactus.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "install.sh",
+    ".npmrc"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "node bin/adactus.js"
+  },
+  "dependencies": {
+    "node-pty": "1.2.0-beta.15"
+  }
+}
