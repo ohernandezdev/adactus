@@ -18,37 +18,37 @@
  */
 
 const lazyPausePatterns = [
-  /do you want (me )?to (proceed|continue)/i,
-  /shall i (continue|proceed)/i,
-  /would you like me to/i,
+  /do\s+you\s+want\s+(me\s+)?to\s+(proceed|continue)/i,
+  /shall\s+i\s+(continue|proceed)/i,
+  /would\s+you\s+like\s+me\s+to/i,
   /\(y\/n\)/i,
   /\[y\/n\]/i,
-  /press enter to continue/i,
-  /waiting for (your )?(confirmation|input|approval)/i,
-  /let me know (if|when) you'?d like me to (continue|proceed)/i,
+  /press\s+enter\s+to\s+continue/i,
+  /waiting\s+for\s+(your\s+)?(confirmation|input|approval)/i,
+  /let\s+me\s+know\s+(if|when)\s+you'?d\s+like\s+me\s+to\s+(continue|proceed)/i,
 ];
 
 const fakeCompletionPatterns = [
-  /task (is )?(complete|done|finished)/i,
-  /all (tasks|done|set|good)\b/i,
-  /i'?ve (completed|finished|implemented) (the|this|everything)/i,
-  /everything (is|looks) (working|done|ready|complete)/i,
-  /implementation (is )?(complete|finished|done)/i,
-  /ready for (review|production|deployment)/i,
+  /task\s+(is\s+)?(complete|done|finished)/i,
+  /all\s+(tasks|done|set|good)\b/i,
+  /i'?ve\s+(completed|finished|implemented)\s+(the|this|everything)/i,
+  /everything\s+(is|looks)\s+(working|done|ready|complete)/i,
+  /implementation\s+(is\s+)?(complete|finished|done)/i,
+  /ready\s+for\s+(review|production|deployment)/i,
 ];
 
 const saturationPatterns = [
-  /context (window )?(is )?(low|full|almost full|running out)/i,
-  /context left until auto-compact:\s*\d+%/i,
+  /context\s+(window\s+)?(is\s+)?(low|full|almost\s+full|running\s+out)/i,
+  /context\s+left\s+until\s+auto-compact:\s*\d+%/i,
   /auto-compact/i,
-  /conversation too long/i,
-  /running low on (context|tokens)/i,
-  /approaching (the )?context limit/i,
+  /conversation\s+too\s+long/i,
+  /running\s+low\s+on\s+(context|tokens)/i,
+  /approaching\s+(the\s+)?context\s+limit/i,
 ];
 
 const dangerPatterns = [
   /rm\s+-rf/i,
-  /git push\s+(--force|-f)\b/i,
+  /git\s+push\s+(--force|-f)\b/i,
   /drop\s+(table|database)/i,
   /\bdeploy\b/i,
   /\bsudo\b/i,
@@ -56,7 +56,7 @@ const dangerPatterns = [
   /credential/i,
   /\btoken\b/i,
   /\bsecret\b/i,
-  /permission escalation/i,
+  /permission\s+escalation/i,
   /\bdelete\b/i,
 ];
 
