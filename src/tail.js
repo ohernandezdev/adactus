@@ -5,6 +5,24 @@
  * stays intact.
  */
 
+function cursorPositionRe() {
+  return /\x1b\[(\d*)(?:;\d*)?[Hf]/g;
+}
+
+/**
+ * Absolute cursor positioning (CUP, "ESC[row;colH"): a jump within the same
+ * row separates words, a jump to another row starts a new line.
+ */
+function cursorPositionToWhitespace() {
+  let lastRow = null;
+  return (_match, row) => {
+    const current = row === "" ? "1" : row;
+    const sameRow = current === lastRow;
+    lastRow = current;
+    return sameRow ? " " : "\n";
+  };
+}
+
 /**
  * Strip common ANSI/VT escape sequences from a string: CSI sequences
  * (cursor movement, colors, erase), OSC sequences (window title, hyperlinks),
@@ -18,8 +36,16 @@ export function stripAnsi(str) {
     str
       // OSC sequences: ESC ] ... (BEL or ESC \)
       .replace(/\x1b\][\s\S]*?(\x07|\x1b\\)/g, "")
-      // CSI sequences: ESC [ ... final byte in @-~
-      .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "")
+      // TUIs such as Claude Code lay text out with cursor moves instead of
+      // spaces and newlines. Horizontal moves (CHA "G", CUF "C") become a
+      // space, vertical moves ("A", "B") become a newline, and absolute
+      // positioning ("H", "f") becomes a space or a newline depending on
+      // whether the row changed, so words stay separated for classification.
+      .replace(/\x1b\[[0-9;]*[GC]/g, " ")
+      .replace(/\x1b\[[0-9]*[AB]/g, "\n")
+      .replace(cursorPositionRe(), cursorPositionToWhitespace())
+      // Remaining CSI sequences: ESC [ ... final byte in @-~
+      .replace(/\x1b\[[0-9;?<>=]*[ -/]*[@-~]/g, "")
       // Character set designation: ESC ( B, ESC ) 0 and similar
       .replace(/\x1b[()*+][0-9A-Za-z]/g, "")
       // Other two-byte escapes: ESC followed by a single char in @-Z or a-z
