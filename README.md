@@ -178,8 +178,25 @@ such as Claude Code treat text plus Enter in one chunk as a paste.
   the work is really finished, so a genuine "done" also gets pushed back
   until `maxSameClass` or `maxInjections` stops it. Use `--no-latigo` or
   `Ctrl+]` when the task really is complete.
+- Trigger phrases inside your own initial prompt can fire an injection:
+  the TUI echoes the prompt into the output adactus classifies. Avoid
+  phrases like "Shall I continue?" in the prompt you pass on the command line.
+- Numbered menus and modal dialogs (folder trust, hook review, update
+  offers, model pickers) are not answered. adactus classifies them as
+  `normal_running` and leaves the choice to you.
 - Pattern-based detection can be fooled by TUI redraws/re-renders that
   momentarily reproduce trigger phrases from earlier in the session.
+
+## Tested with
+
+Dogfooded on macOS (Node 22) inside real terminals:
+
+- Claude Code 2.x with `--permission-mode acceptEdits`: answered a
+  "Shall I continue?" pause, pushed back on "Task is complete", and the
+  agent finished the task with passing tests.
+- Codex CLI 0.156: TUI, trust dialog and injected `Continue.` submission
+  work; a full task run is still pending.
+- OpenCode 1.4: TUI, resize and Ctrl+C exit work under `--dry-run`.
 
 ## Credits
 
