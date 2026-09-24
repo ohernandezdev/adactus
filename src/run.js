@@ -3,46 +3,11 @@
  * and feeds all traffic through the supervisor.
  */
 
-import fs from "node:fs";
-import path from "node:path";
 import pty from "node-pty";
 import { createSupervisor } from "./supervisor.js";
+import { findExecutable, spawnTarget } from "./which.js";
 
 const CTRL_RIGHT_BRACKET = 0x1d;
-
-/**
- * Resolve a command name against PATH, the way a shell would, so we can
- * fail with a clear error before handing an unresolvable command to
- * node-pty (which would otherwise surface an opaque ENOENT).
- * @param {string} command
- * @returns {string|null} absolute path, or null if not found
- */
-function resolveOnPath(command) {
-  if (command.includes(path.sep)) {
-    try {
-      fs.accessSync(command, fs.constants.X_OK);
-      return path.resolve(command);
-    } catch {
-      return null;
-    }
-  }
-
-  const pathEnv = process.env.PATH ?? "";
-  const pathExt = process.platform === "win32" ? [".exe", ".cmd", ".bat", ""] : [""];
-  for (const dir of pathEnv.split(path.delimiter)) {
-    if (!dir) continue;
-    for (const ext of pathExt) {
-      const candidate = path.join(dir, command + ext);
-      try {
-        fs.accessSync(candidate, fs.constants.X_OK);
-        return candidate;
-      } catch {
-        // not found here, keep looking
-      }
-    }
-  }
-  return null;
-}
 
 /**
  * Spawn the agent under node-pty, pipe its output to process.stdout and
@@ -57,7 +22,7 @@ function resolveOnPath(command) {
  * @param {{dryRun?: boolean, noLatigo?: boolean, noCompact?: boolean, verbose?: boolean}} opts.flags
  */
 export function runAgent({ agentCfg, agentArgs, thresholds, laya, logger, flags }) {
-  const resolved = resolveOnPath(agentCfg.command);
+  const resolved = findExecutable(agentCfg.command);
   if (!resolved) {
     process.stderr.write(
       `adactus: could not find "${agentCfg.command}" on PATH. Is it installed?\n`,
@@ -68,7 +33,8 @@ export function runAgent({ agentCfg, agentArgs, thresholds, laya, logger, flags 
   const isTty = process.stdin.isTTY;
   let rawModeWasSet = false;
 
-  const child = pty.spawn(resolved, agentArgs, {
+  const target = spawnTarget(resolved, agentArgs);
+  const child = pty.spawn(target.file, target.args, {
     name: process.env.TERM || "xterm-256color",
     cols: process.stdout.columns || 80,
     rows: process.stdout.rows || 24,

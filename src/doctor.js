@@ -5,8 +5,7 @@
  * so it never affects the exit code.
  */
 
-import fs from "node:fs";
-import path from "node:path";
+import { findExecutable } from "./which.js";
 
 const REQUIRED_MAJOR = 20;
 const SUPPORTED_AGENTS = ["claude", "opencode", "codex"];
@@ -25,7 +24,9 @@ function checkNodeVersion() {
 async function checkNodePty() {
   try {
     const pty = await import("node-pty");
-    const child = pty.spawn("/bin/echo", ["ok"], {
+    const [file, args] =
+      process.platform === "win32" ? [process.env.ComSpec || "cmd.exe", ["/d", "/c", "echo ok"]] : ["/bin/echo", ["ok"]];
+    const child = pty.spawn(file, args, {
       name: "xterm-256color",
       cols: 80,
       rows: 24,
@@ -35,7 +36,7 @@ async function checkNodePty() {
 
     const output = await new Promise((resolve, reject) => {
       let out = "";
-      const timer = setTimeout(() => reject(new Error("timed out waiting for /bin/echo")), 3000);
+      const timer = setTimeout(() => reject(new Error(`timed out waiting for ${file}`)), 3000);
       child.onData((data) => {
         out += data;
       });
@@ -49,7 +50,7 @@ async function checkNodePty() {
     return {
       ok,
       label: "node-pty loads and can spawn a process",
-      detail: ok ? "spawned /bin/echo successfully" : `unexpected output: ${output}`,
+      detail: ok ? `spawned ${file} successfully` : `unexpected output: ${output}`,
       fix: "run `npm rebuild node-pty` (native binary may be missing or mismatched)",
     };
   } catch (err) {
@@ -62,28 +63,9 @@ async function checkNodePty() {
   }
 }
 
-function isExecutable(candidate) {
-  try {
-    fs.accessSync(candidate, fs.constants.X_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function findOnPath(command) {
-  const pathEnv = process.env.PATH ?? "";
-  for (const dir of pathEnv.split(path.delimiter)) {
-    if (!dir) continue;
-    const candidate = path.join(dir, command);
-    if (isExecutable(candidate)) return candidate;
-  }
-  return null;
-}
-
 function checkAgentsOnPath() {
   return SUPPORTED_AGENTS.map((agent) => {
-    const found = findOnPath(agent);
+    const found = findExecutable(agent);
     return {
       ok: Boolean(found),
       label: `${agent} on PATH`,
