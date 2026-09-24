@@ -83,8 +83,10 @@ test("a failing remote endpoint pauses supervisor supervision (never falls back 
 
     supervisor.onOutput("Shall I continue? (y/n)\n");
     clock.advance(10);
-    for (let i = 0; i < 5; i++) {
-      await new Promise((resolve) => setImmediate(resolve));
+    // The classification is a real HTTP round trip: wait for it, bounded.
+    const deadline = Date.now() + 2000;
+    while (!supervisor.isPaused() && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
     }
 
     assert.equal(supervisor.isPaused(), true);
