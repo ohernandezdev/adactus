@@ -1,0 +1,15 @@
+{
+  "name": "adactus",
+  "description": "adactus: a Claude Code plugin that keeps Claude working until the task is really done.",
+  "owner": {
+    "name": "Omar Hernandez",
+    "url": "https://github.com/ohernandezdev"
+  },
+  "plugins": [
+    {
+      "name": "adactus",
+      "source": "./",
+      "description": "Stop hook that keeps Claude Code working until the task is really done."
+    }
+  ]
+}
