@@ -1,16 +1,14 @@
 {
   "name": "adactus",
-  "version": "0.1.0",
-  "description": "A PTY supervisor that wraps interactive AI coding agents (claude, opencode, codex), detects stalls, false completions and context saturation, and injects text to keep them working.",
+  "version": "0.2.0",
+  "description": "Claude Code plugin whose Stop hook keeps Claude working past lazy pauses and premature completion claims.",
   "keywords": [
-    "ai",
-    "agent",
     "claude-code",
-    "codex",
-    "opencode",
-    "pty",
-    "cli",
-    "supervisor"
+    "claude-code-plugin",
+    "stop-hook",
+    "hooks",
+    "agent",
+    "autonomy"
   ],
   "author": "Omar Hernandez (https://github.com/ohernandezdev)",
   "license": "MIT",
@@ -30,17 +28,15 @@
     "node": ">=20"
   },
   "files": [
+    ".claude-plugin",
+    "hooks",
+    "skills",
     "bin",
     "src",
     "README.md",
-    "install.sh",
-    ".npmrc"
+    "LICENSE"
   ],
   "scripts": {
-    "test": "node --test test/*.test.js",
-    "start": "node bin/adactus.js"
-  },
-  "dependencies": {
-    "node-pty": "1.2.0-beta.15"
+    "test": "node --test --test-force-exit"
   }
 }
