@@ -43,6 +43,9 @@ test("adactus wraps a real PTY agent, answers its lazy pause and mirrors its exi
   });
 
   assert.equal(exitCode, 7);
-  assert.match(output, /\x1b\[32mfake agent ready/, "ANSI colors pass through untouched");
+  // ConPTY re-renders the screen and may put cursor moves between the color
+  // and the text, so check both separately.
+  assert.match(output, /\x1b\[32m/, "ANSI colors pass through");
+  assert.match(output, /fake agent ready/);
   assert.match(output, /GOT:"Continue\.\\r"/, "the lazy pause was answered and submitted");
 });
