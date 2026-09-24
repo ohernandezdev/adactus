@@ -34,10 +34,11 @@
     "src",
     "README.md",
     "install.sh",
+    "install.ps1",
     ".npmrc"
   ],
   "scripts": {
-    "test": "node --test test/*.test.js",
+    "test": "node --test",
     "start": "node bin/adactus.js"
   },
   "dependencies": {
