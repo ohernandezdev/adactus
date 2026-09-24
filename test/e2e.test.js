@@ -25,7 +25,9 @@ function fakeClaudeDir() {
 
 test("adactus wraps a real PTY agent, answers its lazy pause and mirrors its exit code", async () => {
   const dir = fakeClaudeDir();
-  const env = { ...process.env, PATH: `${dir}${path.delimiter}${process.env.PATH}` };
+  // Windows spells it "Path"; adding a second "PATH" key would be ignored.
+  const pathKey = Object.keys(process.env).find((key) => key.toUpperCase() === "PATH") ?? "PATH";
+  const env = { ...process.env, [pathKey]: `${dir}${path.delimiter}${process.env[pathKey]}` };
   const child = pty.spawn(process.execPath, [binPath, "claude"], { cols: 100, rows: 30, env });
 
   let output = "";

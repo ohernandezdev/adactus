@@ -38,7 +38,7 @@
     ".npmrc"
   ],
   "scripts": {
-    "test": "node --test",
+    "test": "node --test --test-force-exit",
     "start": "node bin/adactus.js"
   },
   "dependencies": {
