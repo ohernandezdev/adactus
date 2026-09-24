@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         node: [20, 22]
     runs-on: ${{ matrix.os }}
     steps:
@@ -22,3 +22,18 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: node bin/adactus.js doctor
+  install-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: install.ps1
+        shell: pwsh
+        run: ./install.ps1
+      - name: adactus on PATH
+        shell: pwsh
+        run: |
+          adactus --version
+          adactus nope; if ($LASTEXITCODE -ne 2) { exit 1 } else { exit 0 }

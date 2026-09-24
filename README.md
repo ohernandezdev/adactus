@@ -12,8 +12,7 @@ adactus supervises the session from the outside.
 
 ## Requirements
 
-- macOS or Linux (Windows is untested and `adactus doctor` does not
-  support it yet)
+- macOS, Linux or Windows 10/11 (Windows runs agents through ConPTY)
 - Node.js >= 20 and npm
 - At least one agent installed and logged in: `claude` (Claude Code),
   `codex` (Codex CLI) or `opencode`
@@ -25,6 +24,20 @@ git clone https://github.com/ohernandezdev/adactus.git
 cd adactus
 ./install.sh
 ```
+
+On Windows (PowerShell):
+
+```powershell
+git clone https://github.com/ohernandezdev/adactus.git
+cd adactus
+./install.ps1
+```
+
+If PowerShell blocks the script, run it once with
+`powershell -ExecutionPolicy Bypass -File .\install.ps1`. npm-installed
+agents on Windows are `.cmd` shims; adactus finds them through `PATHEXT`
+and launches them through `cmd.exe`, so avoid `"` and `%` inside prompts
+passed on the command line.
 
 It checks Node >= 20, runs `npm install -g --install-links .`, then
 `adactus doctor`. You can run that npm command yourself instead. Keep the
@@ -59,12 +72,14 @@ target machine:
 Install the adactus CLI from https://github.com/ohernandezdev/adactus:
 1. Check that Node.js >= 20 and npm are installed; stop and tell me if not.
 2. Clone the repo into ~/Projects/adactus (or `git pull` if it already exists).
-3. Run ./install.sh from the repo root.
+3. Run ./install.sh from the repo root (on Windows: ./install.ps1 in
+   PowerShell, or `powershell -ExecutionPolicy Bypass -File .\install.ps1`).
 4. Run `adactus doctor` and show me the output. Node.js and node-pty must
    both show ✔. If node-pty fails, run `npm rebuild node-pty` inside the
    global install and run doctor again.
-5. If the install script says the npm global bin is not on PATH, add the
-   export line it prints to my shell profile.
+5. If the install script says the npm global bin is not on PATH, apply the
+   PATH fix it prints (shell profile export on macOS/Linux, user Path
+   variable on Windows).
 Do not start adactus yourself: it wraps an interactive agent session and
 is meant to be launched by me from a terminal.
 ```
