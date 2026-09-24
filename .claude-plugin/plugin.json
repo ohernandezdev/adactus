@@ -1,0 +1,13 @@
+{
+  "name": "adactus",
+  "version": "0.2.0",
+  "description": "Keeps Claude Code working: blocks lazy \"Shall I continue?\" stops and premature \"task complete\" claims with a Stop hook, and hands control back on dangerous or repeated stops.",
+  "author": {
+    "name": "Omar Hernandez",
+    "url": "https://github.com/ohernandezdev"
+  },
+  "homepage": "https://github.com/ohernandezdev/adactus",
+  "repository": "https://github.com/ohernandezdev/adactus",
+  "license": "MIT",
+  "keywords": ["stop-hook", "autonomy", "agent", "claude-code"]
+}
