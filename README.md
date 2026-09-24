@@ -6,11 +6,23 @@ injects text into their stdin when it looks like they've stalled,
 paused waiting for a trivial confirmation, claimed false completion, or
 are about to run out of context.
 
+adactus is not a Claude Code plugin and does not run inside the agent. It
+is a terminal wrapper: you type `adactus claude` instead of `claude`, and
+adactus supervises the session from the outside.
+
+## Requirements
+
+- macOS or Linux (Windows is untested and `adactus doctor` does not
+  support it yet)
+- Node.js >= 20 and npm
+- At least one agent installed and logged in: `claude` (Claude Code),
+  `codex` (Codex CLI) or `opencode`
+
 ## Install
 
-One command from the repo root:
-
 ```sh
+git clone https://github.com/ohernandezdev/adactus.git
+cd adactus
 ./install.sh
 ```
 
@@ -37,6 +49,27 @@ Uninstall:
 ```sh
 npm uninstall -g adactus
 ```
+
+### Install it through an AI agent
+
+Paste this into Claude Code, Codex or any agent with shell access on the
+target machine:
+
+```text
+Install the adactus CLI from https://github.com/ohernandezdev/adactus:
+1. Check that Node.js >= 20 and npm are installed; stop and tell me if not.
+2. Clone the repo into ~/Projects/adactus (or `git pull` if it already exists).
+3. Run ./install.sh from the repo root.
+4. Run `adactus doctor` and show me the output. Node.js and node-pty must
+   both show ✔. If node-pty fails, run `npm rebuild node-pty` inside the
+   global install and run doctor again.
+5. If the install script says the npm global bin is not on PATH, add the
+   export line it prints to my shell profile.
+Do not start adactus yourself: it wraps an interactive agent session and
+is meant to be launched by me from a terminal.
+```
+
+Then, in a normal terminal: `adactus claude`.
 
 ## Usage
 
