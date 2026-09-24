@@ -1,113 +1,78 @@
 /**
- * Static configuration for adactus: per-agent command definitions, pattern
- * lists used by the classifier, and global thresholds that shape
- * supervision behavior (idle detection, cooldowns, safety limits).
+ * Static configuration for adactus: the phrases the classifier looks for
+ * in Claude's final message of a turn, the reasons fed back to Claude when
+ * a stop is blocked, and the limits that keep the push bounded.
  */
 
-/**
- * @typedef {object} AgentConfig
- * @property {string} command - executable name resolved on PATH
- * @property {RegExp[]} lazyPausePatterns - phrases indicating the agent stopped and is waiting for confirmation
- * @property {RegExp[]} fakeCompletionPatterns - phrases claiming the task is done
- * @property {RegExp[]} saturationPatterns - phrases indicating the context window is filling up
- * @property {RegExp[]} dangerPatterns - phrases indicating a potentially destructive action is pending
- * @property {string} continueText - text injected to nudge the agent forward
- * @property {string} confirmText - text injected to answer a yes/no style prompt
- * @property {string} correctiveText - text injected when a fake completion is detected
- * @property {string} compactCommand - the agent's own slash command to trigger context compaction
- */
-
-const lazyPausePatterns = [
-  /do\s+you\s+want\s+(me\s+)?to\s+(proceed|continue)/i,
-  /shall\s+i\s+(continue|proceed)/i,
-  /would\s+you\s+like\s+me\s+to/i,
-  /\(y\/n\)/i,
-  /\[y\/n\]/i,
-  /press\s+enter\s+to\s+continue/i,
-  /waiting\s+for\s+(your\s+)?(confirmation|input|approval)/i,
-  /let\s+me\s+know\s+(if|when)\s+you'?d\s+like\s+me\s+to\s+(continue|proceed)/i,
+/** Claude stops to ask permission for work that already follows from the task. */
+export const lazyPausePatterns = [
+  /shall\s+i\s+(continue|proceed|go\s+ahead|keep\s+going)/i,
+  /should\s+i\s+(continue|proceed|go\s+ahead|keep\s+going)/i,
+  /(do|would)\s+you\s+(want|like)\s+me\s+to\s+(continue|proceed|go\s+ahead|keep\s+going|finish|start)/i,
+  /want\s+me\s+to\s+(continue|proceed|go\s+ahead|keep\s+going)/i,
+  /let\s+me\s+know\s+(if|when)\s+you('d|\s+would)?\s+(like|want)\s+me\s+to\s+(continue|proceed|go\s+ahead)/i,
+  /ready\s+to\s+(continue|proceed)\s+when(ever)?\s+you\s+are/i,
+  /\((y\/n|yes\/no)\)\s*\??\s*$/im,
 ];
 
-const fakeCompletionPatterns = [
-  /task\s+(is\s+)?(complete|done|finished)/i,
-  /all\s+(tasks|done|set|good)\b/i,
-  /i'?ve\s+(completed|finished|implemented)\s+(the|this|everything)/i,
+/** Claude claims the work is finished. */
+export const completionClaimPatterns = [
+  /task\s+(is\s+)?(now\s+)?(complete|done|finished)/i,
+  /(implementation|feature|work)\s+(is\s+)?(now\s+)?(complete|finished|done)/i,
+  /i('ve|\s+have)\s+(completed|finished|implemented)\s+(the|this|everything|all)/i,
   /everything\s+(is|looks)\s+(working|done|ready|complete)/i,
-  /implementation\s+(is\s+)?(complete|finished|done)/i,
+  /all\s+(tasks|done|set)\b/i,
   /ready\s+for\s+(review|production|deployment)/i,
 ];
 
-const saturationPatterns = [
-  /context\s+(window\s+)?(is\s+)?(low|full|almost\s+full|running\s+out)/i,
-  /context\s+left\s+until\s+auto-compact:\s*\d+%/i,
-  /auto-compact/i,
-  /conversation\s+too\s+long/i,
-  /running\s+low\s+on\s+(context|tokens)/i,
-  /approaching\s+(the\s+)?context\s+limit/i,
+/**
+ * Evidence, in the same message, that the claimed-complete work is not.
+ * A completion claim without any of these is trusted and the stop allowed.
+ */
+export const incompletenessPatterns = [
+  /\bTODO\b|\bFIXME\b/,
+  /not\s+(yet\s+)?implemented/i,
+  /\b(placeholder|stub(bed)?)\b/i,
+  /\b(remaining|outstanding)\s+(work|tasks?|items?|steps?)/i,
+  /\bnext\s+steps?\b/i,
+  /you('ll|\s+will)\s+(need|have)\s+to/i,
+  /\btests?\s+(are\s+|is\s+)?(still\s+)?failing\b|\b[1-9]\d*\s+(tests?\s+)?fail(ed|ing|ures?)\b/i,
+  /\b(couldn't|could\s+not|unable\s+to|wasn't\s+able\s+to)\b/i,
+  /\b(skipped|left\s+out|not\s+(yet\s+)?(done|finished|wired))\b/i,
 ];
 
-const dangerPatterns = [
+/** A pause that asks about one of these stays with the user. */
+export const dangerPatterns = [
   /rm\s+-rf/i,
   /git\s+push\s+(--force|-f)\b/i,
+  /\bforce[-\s]push/i,
   /drop\s+(table|database)/i,
-  /\bdeploy\b/i,
+  /\b(deploy|deployment|release|publish)\b/i,
   /\bsudo\b/i,
   /chmod\s+777/i,
-  /credential/i,
-  /\btoken\b/i,
-  /\bsecret\b/i,
-  /permission\s+escalation/i,
-  /\bdelete\b/i,
+  /\b(credentials?|secrets?|api\s+keys?|tokens?|passwords?)\b/i,
+  /\bpermissions?\s+escalation\b/i,
+  /\b(delete|remove|wipe|truncate)\b/i,
+  /\b(migration|production|prod)\b/i,
 ];
 
-export const AGENTS = {
-  claude: {
-    command: "claude",
-    lazyPausePatterns,
-    fakeCompletionPatterns,
-    saturationPatterns,
-    dangerPatterns,
-    continueText: "Continue.",
-    confirmText: "Yes, proceed.",
-    correctiveText:
-      "The task is incomplete. Inspect files and continue working until fully operational.",
-    compactCommand: "/compact",
-  },
-  opencode: {
-    command: "opencode",
-    lazyPausePatterns,
-    fakeCompletionPatterns,
-    saturationPatterns,
-    dangerPatterns,
-    continueText: "Continue.",
-    confirmText: "Yes, proceed.",
-    correctiveText:
-      "The task is incomplete. Inspect files and continue working until fully operational.",
-    compactCommand: "/compact",
-  },
-  codex: {
-    command: "codex",
-    lazyPausePatterns,
-    fakeCompletionPatterns,
-    saturationPatterns,
-    dangerPatterns,
-    continueText: "Continue.",
-    confirmText: "Yes, proceed.",
-    correctiveText:
-      "The task is incomplete. Inspect files and continue working until fully operational.",
-    compactCommand: "/compact",
-  },
+// The user installed adactus to answer these check-ins on their behalf;
+// say so, or Claude reasonably keeps waiting for a human reply.
+const PREFIX = "adactus (a Stop hook the user installed to answer check-ins on their behalf): ";
+
+export const REASONS = {
+  lazy_pause:
+    `${PREFIX}Continue. Do not ask for confirmation for steps that follow from the task. ` +
+    "Work autonomously and only stop when the task is fully done or you need a decision only the user can make.",
+  fake_completion:
+    `${PREFIX}The task is incomplete. Inspect files and continue working until fully operational.`,
 };
 
-export const THRESHOLDS = {
-  idleMs: 1500,
-  cooldownMs: 5000,
-  maxInjections: 50,
-  maxSameClass: 3,
-  tailBytes: 8192,
-  winnowThreshold: 0.1,
-  // Delay between typing the injected text and pressing Enter. TUIs such as
-  // Claude Code treat text + "\r" arriving in one chunk as a paste and do
-  // not submit it.
-  submitDelayMs: 150,
+export const LIMITS = {
+  // Consecutive blocks within one stop chain. Claude Code overrides a Stop
+  // hook itself after 8; adactus hands control back well before that.
+  maxConsecutiveBlocks: 3,
+  // Only the end of the final message matters: that is where Claude asks.
+  tailChars: 1200,
+  remoteTimeoutMs: 2000,
 };
