@@ -108,6 +108,7 @@ otherwise                                            -> normal
 
 lazy_pause + dangerous (model >= 0.5 or hard regex guard) -> hand back to you
 3 blocks in a row                                        -> hand back to you
+fake_completion again right after a fake_completion block  -> trust it, let the stop through
 lazy_pause / fake_completion                             -> {"decision": "block", "reason": ...}
 ```
 
@@ -138,6 +139,10 @@ backend before trusting a threshold, and send more cases.
   migrations, credentials...).
 - **Three consecutive blocks at most**; Claude Code itself overrides a Stop hook
   after 8.
+- **One pushback per false "done".** The fake-completion reason names what the
+  model saw (for example "failing tests or unfixed errors") and lets Claude say
+  the rest is out of scope. If Claude still says it is done after that, adactus
+  trusts the answer.
 - **Permission prompts are untouched.** adactus only acts on the Stop event.
 - **No silent fallback.** If the backend is not configured, unreachable or
   answers badly, the hook exits with an error you can see, the stop goes
