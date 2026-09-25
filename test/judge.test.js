@@ -17,7 +17,9 @@ test("a question only the user can answer is not a lazy pause", () => {
 });
 
 test("a done claim plus unfinished work is a fake completion", () => {
-  assert.equal(interpret(answers({ claims_done: 0.9, leftovers: 0.6 }), "Done. TODO left.").label, "fake_completion");
+  const verdict = interpret(answers({ claims_done: 0.9, leftovers: 0.6 }), "Done. TODO left.");
+  assert.equal(verdict.label, "fake_completion");
+  assert.deepEqual(verdict.gaps, ["TODOs, placeholders or stubs"]);
 });
 
 test("a done claim without unfinished work is trusted", () => {

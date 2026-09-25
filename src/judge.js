@@ -29,7 +29,12 @@ export const QUESTIONS = {
   failing_tests: noul("Does `final_message` report failing tests or errors that are not fixed yet?"),
 };
 
-const UNFINISHED = ["not_done_yet", "next_steps", "leftovers", "failing_tests"];
+const UNFINISHED = {
+  not_done_yet: "work that is not done yet",
+  next_steps: "next steps or remaining work",
+  leftovers: "TODOs, placeholders or stubs",
+  failing_tests: "failing tests or unfixed errors",
+};
 
 const firstMatch = (patterns, text) => {
   for (const pattern of patterns) {
@@ -45,12 +50,15 @@ const round = (value) => Number(value.toFixed(3));
  * @param {Record<string, {noul: number}>} answers - System One `answers`
  * @param {string} message - the judged text, for the regex danger guard
  * @param {Partial<typeof LIMITS>} [thresholds] - per-backend overrides
- * @returns {{label: string, dangerous: boolean, evidence: object}}
+ * @returns {{label: string, gaps: string[], dangerous: boolean, evidence: object}}
  */
 export function interpret(answers, message, thresholds = {}) {
   const t = { ...LIMITS, ...thresholds };
   const p = Object.fromEntries(Object.keys(QUESTIONS).map((id) => [id, answers[id].noul]));
-  const unfinished = Math.max(...UNFINISHED.map((id) => p[id]));
+  const unfinished = Math.max(...Object.keys(UNFINISHED).map((id) => p[id]));
+  const gaps = Object.entries(UNFINISHED)
+    .filter(([id]) => p[id] >= t.unfinishedMin)
+    .map(([, phrase]) => phrase);
   const regexDanger = firstMatch(dangerPatterns, message);
 
   // Asking to continue wins: "Step 1 is done, shall I do step 2?" is a pause.
@@ -60,6 +68,7 @@ export function interpret(answers, message, thresholds = {}) {
 
   return {
     label,
+    gaps,
     dangerous: p.dangerous >= t.dangerMin || regexDanger !== null,
     evidence: { ...Object.fromEntries(Object.entries(p).map(([k, v]) => [k, round(v)])), regexDanger },
   };
@@ -85,5 +94,6 @@ export async function judge(backend, finalMessage, thresholds) {
     ...interpret(response.answers, message, thresholds),
     model: response.model ?? backend.model,
     ms: Date.now() - started,
+    usage: response.usage ?? null,
   };
 }

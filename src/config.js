@@ -30,8 +30,11 @@ export const REASONS = {
   lazy_pause:
     `${PREFIX}Continue. Do not ask for confirmation for steps that follow from the task. ` +
     "Work autonomously and only stop when the task is fully done or you need a decision only the user can make.",
-  fake_completion:
-    `${PREFIX}The task is incomplete. Inspect files and continue working until fully operational.`,
+  // gaps: what the model saw in the message, e.g. ["failing tests or unfixed errors"]
+  fake_completion: (gaps) =>
+    `${PREFIX}The task is incomplete: your last message says it is done but also mentions ${gaps.join(" and ")}. ` +
+    "Inspect files and continue working until fully operational. " +
+    "If that remaining work is outside the task you were given, say so and stop.",
 };
 
 export const LIMITS = {
