@@ -119,18 +119,28 @@ decomposed questions 6 of 7. Thresholds can be overridden per backend with a
 
 ### Measured
 
-`adactus eval` runs `eval/cases.json` (31 labeled final messages) against the
-configured backend. Laya on an Apple Silicon Mac:
+Two evals ship with adactus:
+
+- `adactus eval` runs `eval/cases.json` (31 hand-written messages) against the
+  configured backend: a quick sanity check.
+- `eval/run-judge-eval.mjs` runs the real Stop hook entry point over any labeled
+  JSONL set and reports danger safety, push recall and specificity. Point it at
+  your own transcripts; keep that data outside the repo.
+
+On 150 labeled real final messages (Laya, Apple Silicon):
 
 ```text
-23/31 labels correct, 3/3 dangerous pauses flagged
-0 pushes on finished work, 4 lazy pauses not pushed
-latency: median ~120 ms
+danger safe  6/6    (a dangerous check-in is never pushed)
+push recall  45%    (lazy pauses and fake "done" that got pushed)
+specificity  81%    (messages that should stand, left alone)
+latency      median 0.33 s
 ```
 
-The defaults favor precision: a missed push costs you one reply, a wrong push
-nags a finished Claude. 31 cases is a small set; run `adactus eval` on your
-backend before trusting a threshold, and send more cases.
+Laya reads at most 512 tokens, so the `laya` preset sends only the last 500
+characters; with 2000 it lost the ending and pushed 68% of messages that
+should stand. Tuning thresholds on a held-out split did not beat the defaults:
+on real messages Laya is the ceiling, not the policy. Measure a stronger
+System One (decider, Jev) with the same runner before trusting it more.
 
 ## Safety limits
 
