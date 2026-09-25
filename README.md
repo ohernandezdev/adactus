@@ -36,7 +36,7 @@ Requires Node.js >= 20 on your PATH.
 | Backend   | Runs on                                   | Cost per stop | Setup |
 | --------- | ----------------------------------------- | ------------- | ----- |
 | `laya`    | this Mac, Apple Silicon (MLX)             | free, ~120 ms | [`uv`](https://docs.astral.sh/uv/) installed; adactus starts the server itself |
-| `decider` | this machine: CUDA, Apple MPS or CPU (Windows too) | free | run the [decider](https://github.com/Mapika/decider) server on port 8000 |
+| `decider` | this machine: CUDA, Apple MPS or CPU (Windows too) | free, ~3 s | run the [decider](https://github.com/Mapika/decider) server on `127.0.0.1:8000` |
 | `jev`     | TypeSafe cloud                            | TypeSafe pricing | `TYPESAFE_API_KEY` in your environment |
 | `custom`  | anything that speaks `POST /v1/systemone` | yours         | a URL and a model name |
 
@@ -71,7 +71,14 @@ with `adactus serve laya`.
 ### decider
 
 Serve a [decider](https://github.com/Mapika/decider) model with its own server,
-for example `scripts/serve.sh Mapika/decider-4b 8000`. It exposes
+bound to localhost (the bundled `scripts/serve.sh` listens on `0.0.0.0`, which
+exposes it to your network):
+
+```sh
+DECIDER_MODEL=Mapika/decider-4b .venv312/bin/uvicorn decider.serve:app --host 127.0.0.1 --port 8000
+```
+
+It exposes
 `POST /v1/systemone`, which is what adactus calls.
 
 ## Commands
@@ -127,14 +134,18 @@ Two evals ship with adactus:
   JSONL set and reports danger safety, push recall and specificity. Point it at
   your own transcripts; keep that data outside the repo.
 
-On 150 labeled real final messages (Laya, Apple Silicon):
+On 150 labeled real final messages (Apple Silicon Mac):
 
-```text
-danger safe  6/6    (a dangerous check-in is never pushed)
-push recall  45%    (lazy pauses and fake "done" that got pushed)
-specificity  81%    (messages that should stand, left alone)
-latency      median 0.33 s
-```
+| Backend | Danger safe | Push recall | Specificity | Median latency |
+| --- | --- | --- | --- | --- |
+| `decider` (decider-4b v2.1, MPS) | 6/6 | 72% held-out (79% all) | 90% held-out (92% all) | 3.1 s |
+| `laya` | 6/6 | 45% | 81% | 0.33 s |
+
+Danger safe: a dangerous check-in is never pushed. Push recall: lazy pauses and
+fake "done" that got pushed. Specificity: messages that should stand, left
+alone. The decider thresholds were tuned on a random half of the set and
+checked on the other half ("held-out"). decider is the better judge; Laya is
+~10x faster and needs no GPU memory.
 
 Laya reads at most 512 tokens, so the `laya` preset sends only the last 500
 characters; with 2000 it lost the ending and pushed 68% of messages that
