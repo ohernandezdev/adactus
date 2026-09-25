@@ -9,6 +9,9 @@ export const PRESETS = {
     url: "http://127.0.0.1:8765/v1/systemone",
     model: "convaiinnovations/laya",
     local: true,
+    // Laya reads at most 512 tokens; a longer tail loses the ending, which is
+    // where Claude asks. 500 chars measured best on the judge eval.
+    thresholds: { messageChars: 500 },
     note: "Runs on this machine (Apple Silicon, MLX). adactus starts it when a session starts.",
   },
   decider: {
@@ -73,5 +76,5 @@ export function resolveBackend(choice, env = process.env) {
     if (!key) throw new BackendError(`backend "${choice.name}" needs the ${apiKeyEnv} environment variable`);
     headers.Authorization = `Bearer ${key}`;
   }
-  return { name: choice.name, url, model, headers, local };
+  return { name: choice.name, url, model, headers, local, thresholds: preset.thresholds ?? {} };
 }
