@@ -1,10 +1,11 @@
 /**
- * Wires the Stop hook together: config and session state from disk,
- * Laya classification, the decision, and the decision log.
+ * Wires the Stop hook together: config and session state from disk, the
+ * System One judgment, the decision, and the decision log.
  */
 
+import { resolveBackend } from "./backends.js";
 import { decide } from "./decide.js";
-import { createLaya } from "./laya.js";
+import { judge } from "./judge.js";
 import { adactusHome, appendLog, readConfig, readSession, writeSession } from "./state.js";
 
 /**
@@ -16,27 +17,40 @@ export async function classify(input, { home, env = process.env } = {}) {
   const root = home ?? adactusHome(env);
   const config = readConfig(root);
   if (env.ADACTUS_DISABLED === "1") config.enabled = false;
+  const base = { at: new Date().toISOString(), session: input.session_id, cwd: input.cwd };
 
-  const verdict = config.enabled
-    ? await createLaya({ endpoint: env.LAYA_ENDPOINT ?? null }).classify(input.last_assistant_message ?? "")
-    : { label: "normal", evidence: null, dangerous: false, backend: "none" };
+  if (!config.enabled) {
+    appendLog(root, { ...base, outcome: "disabled" });
+    writeSession(root, input.session_id, { consecutiveBlocks: 0 });
+    return null;
+  }
+
+  let verdict;
+  let backend;
+  try {
+    backend = resolveBackend(config.backend, env);
+    verdict = await judge(backend, input.last_assistant_message ?? "", config.thresholds);
+  } catch (err) {
+    // No fallback: the stop goes through and the failure is visible.
+    appendLog(root, { ...base, outcome: "error", error: err.message });
+    writeSession(root, input.session_id, { consecutiveBlocks: 0 });
+    throw err;
+  }
 
   const session = readSession(root, input.session_id);
   const result = decide({ input, verdict, config, session });
   writeSession(root, input.session_id, result.session);
-
   appendLog(root, {
-    at: new Date().toISOString(),
-    session: input.session_id,
-    cwd: input.cwd,
+    ...base,
     outcome: result.outcome,
     label: verdict.label,
+    backend: backend.name,
+    model: verdict.model,
+    ms: verdict.ms,
     evidence: verdict.evidence,
-    backend: verdict.backend,
     streak: result.session.consecutiveBlocks,
   });
 
   if (!result.block) return null;
-  const evidence = verdict.evidence ? ` (adactus saw: "${verdict.evidence}")` : "";
-  return { decision: "block", reason: `${result.reason}${evidence}` };
+  return { decision: "block", reason: result.reason };
 }

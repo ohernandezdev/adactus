@@ -5,7 +5,7 @@ import { LIMITS } from "../src/config.js";
 
 const on = { enabled: true, dryRun: false };
 const fresh = { consecutiveBlocks: 0 };
-const lazy = { label: "lazy_pause", evidence: "Shall I continue?", dangerous: false };
+const lazy = { label: "lazy_pause", dangerous: false };
 
 test("blocks a lazy pause and starts a streak", () => {
   const result = decide({ input: { stop_hook_active: false }, verdict: lazy, config: on, session: fresh });
@@ -15,14 +15,14 @@ test("blocks a lazy pause and starts a streak", () => {
 });
 
 test("blocks a fake completion with the corrective reason", () => {
-  const verdict = { label: "fake_completion", evidence: "TODO", dangerous: false };
+  const verdict = { label: "fake_completion", dangerous: false };
   const result = decide({ input: {}, verdict, config: on, session: fresh });
   assert.equal(result.block, true);
   assert.match(result.reason, /The task is incomplete/);
 });
 
 test("lets a normal stop through and resets the streak", () => {
-  const verdict = { label: "normal", evidence: null, dangerous: false };
+  const verdict = { label: "normal", dangerous: false };
   const result = decide({ input: { stop_hook_active: true }, verdict, config: on, session: { consecutiveBlocks: 2 } });
   assert.equal(result.block, false);
   assert.equal(result.session.consecutiveBlocks, 0);

@@ -1,47 +1,13 @@
 /**
- * Static configuration for adactus: the phrases the classifier looks for
- * in Claude's final message of a turn, the reasons fed back to Claude when
- * a stop is blocked, and the limits that keep the push bounded.
+ * Static configuration for adactus: the hard danger guard, the reasons fed
+ * back to Claude when a stop is blocked, and the limits that keep the push
+ * bounded. Classification itself is done by a System One model.
  */
-
-/** Claude stops to ask permission for work that already follows from the task. */
-export const lazyPausePatterns = [
-  /shall\s+i\s+(continue|proceed|go\s+ahead|keep\s+going)/i,
-  /should\s+i\s+(continue|proceed|go\s+ahead|keep\s+going)/i,
-  /(do|would)\s+you\s+(want|like)\s+me\s+to\s+(continue|proceed|go\s+ahead|keep\s+going|finish|start)/i,
-  /want\s+me\s+to\s+(continue|proceed|go\s+ahead|keep\s+going)/i,
-  /let\s+me\s+know\s+(if|when)\s+you('d|\s+would)?\s+(like|want)\s+me\s+to\s+(continue|proceed|go\s+ahead)/i,
-  /ready\s+to\s+(continue|proceed)\s+when(ever)?\s+you\s+are/i,
-  /\((y\/n|yes\/no)\)\s*\??\s*$/im,
-];
-
-/** Claude claims the work is finished. */
-export const completionClaimPatterns = [
-  /task\s+(is\s+)?(now\s+)?(complete|done|finished)/i,
-  /(implementation|feature|work)\s+(is\s+)?(now\s+)?(complete|finished|done)/i,
-  /i('ve|\s+have)\s+(completed|finished|implemented)\s+(the|this|everything|all)/i,
-  /everything\s+(is|looks)\s+(working|done|ready|complete)/i,
-  /all\s+(tasks|done|set)\b/i,
-  /ready\s+for\s+(review|production|deployment)/i,
-];
 
 /**
- * Evidence, in the same message, that the claimed-complete work is not.
- * A completion claim without any of these is trusted and the stop allowed.
+ * Hard guard, applied on top of the model's own danger judgment: a pause
+ * that mentions one of these always stays with the user.
  */
-export const incompletenessPatterns = [
-  /\bTODO\b|\bFIXME\b/,
-  /not\s+(yet\s+)?implemented/i,
-  /\b(placeholder|stub(bed)?)\b/i,
-  /\b(remaining|outstanding)\s+(work|tasks?|items?|steps?)/i,
-  /\bnext\s+steps?\b/i,
-  /you('ll|\s+will)\s+(need|have)\s+to/i,
-  /\btests?\s+(are\s+|is\s+)?(still\s+)?failing\b|\b[1-9]\d*\s+(tests?\s+)?fail(ed|ing|ures?)\b/i,
-  /\b(couldn't|could\s+not|unable\s+to|wasn't\s+able\s+to)\b/i,
-  /\b(skipped|left\s+out|not\s+(yet\s+)?(done|finished|wired))\b/i,
-];
-
-/** A pause that asks about one of these stays with the user. */
 export const dangerPatterns = [
   /rm\s+-rf/i,
   /git\s+push\s+(--force|-f)\b/i,
@@ -73,6 +39,15 @@ export const LIMITS = {
   // hook itself after 8; adactus hands control back well before that.
   maxConsecutiveBlocks: 3,
   // Only the end of the final message matters: that is where Claude asks.
-  tailChars: 1200,
-  remoteTimeoutMs: 2000,
+  messageChars: 2000,
+  // Policy thresholds on the System One answers (probabilities 0..1).
+  // Tuned on Laya with eval/cases.json; override per backend in config.
+  continueMin: 0.7, // asks whether to continue (precision over recall)
+  userDecisionMax: 0.5, // at or above: a question only the user can answer
+  claimMin: 0.5, // says the task is done
+  unfinishedMin: 0.3, // strongest unfinished-work signal
+  dangerMin: 0.5, // proposes a destructive or outward-facing action
+  // The hook itself has a 10s budget in hooks/hooks.json.
+  localTimeoutMs: 4000,
+  remoteTimeoutMs: 7000,
 };
