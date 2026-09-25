@@ -1,6 +1,6 @@
 {
   "name": "adactus",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Claude Code plugin whose Stop hook asks a System One model (Laya, decider or Jev) whether Claude should keep working.",
   "keywords": [
     "claude-code",

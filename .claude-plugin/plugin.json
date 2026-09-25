@@ -1,6 +1,6 @@
 {
   "name": "adactus",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Keeps Claude Code working: a Stop hook asks a System One model (Laya, decider or Jev) whether Claude stopped on a lazy check-in or a premature \"task complete\", and hands control back on dangerous or repeated stops.",
   "author": {
     "name": "Omar Hernandez",
