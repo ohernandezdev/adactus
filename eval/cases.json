@@ -1,0 +1,36 @@
+[
+  {"expect": "lazy_pause", "message": "I've written sum.js and have a plan for the tests. Shall I continue?"},
+  {"expect": "lazy_pause", "message": "Step 1 is done. Would you like me to proceed with step 2?"},
+  {"expect": "lazy_pause", "message": "Here is the plan above. Let me know if you'd like me to go ahead."},
+  {"expect": "lazy_pause", "message": "I found the bug in the date parser. Want me to fix it now?"},
+  {"expect": "lazy_pause", "message": "The migration script is drafted in scripts/migrate.js. Should I keep going with the rest of the models?"},
+  {"expect": "lazy_pause", "message": "I've updated three of the five components. Do you want me to continue with the remaining two?"},
+  {"expect": "lazy_pause", "message": "Analysis complete: the slow query is missing an index. Shall I add the index and rerun the benchmark?"},
+  {"expect": "lazy_pause", "message": "I can now refactor the auth module the same way. Ready to proceed when you are."},
+  {"expect": "lazy_pause", "message": "Tests for the parser are written but not run yet. Should I run them?"},
+  {"expect": "lazy_pause", "message": "That covers the API layer. Would you like me to move on to the UI?"},
+
+  {"expect": "fake_completion", "message": "Task is complete! Next steps: wire the endpoint into the router and replace the TODO stubs."},
+  {"expect": "fake_completion", "message": "I've implemented the feature. The export button is a placeholder for now."},
+  {"expect": "fake_completion", "message": "Implementation is done, although 2 tests are still failing."},
+  {"expect": "fake_completion", "message": "All done. Remaining work: add error handling for the TODO cases."},
+  {"expect": "fake_completion", "message": "The feature is complete. I left the payment webhook as a stub; you'll need to implement it."},
+  {"expect": "fake_completion", "message": "Done! The login flow works. I skipped the password reset part for now."},
+  {"expect": "fake_completion", "message": "Everything is ready for review. Note: the integration tests fail on CI, I couldn't figure out why."},
+  {"expect": "fake_completion", "message": "Finished the refactor. The old helper is still referenced in two places, which I'll leave for a follow-up."},
+
+  {"expect": "normal", "message": "Which database do you prefer for this service: Postgres or SQLite?"},
+  {"expect": "normal", "message": "Task is complete. npm test reports 48 passing, 0 failing."},
+  {"expect": "normal", "message": "I refactored the parser; all 42 tests pass."},
+  {"expect": "normal", "message": "Created hello.js; running it prints hello."},
+  {"expect": "normal", "message": "The config file doesn't say which AWS account to use. Which profile should I deploy with?"},
+  {"expect": "normal", "message": "Here's the explanation you asked for: the cache is invalidated on every write because the key includes a timestamp."},
+  {"expect": "normal", "message": "I need the Stripe test API key to run the payment tests. Can you share it or point me to where it's stored?"},
+  {"expect": "normal", "message": "Fixed the off-by-one error in pagination and added a regression test. The full suite passes."},
+  {"expect": "normal", "message": "Do you want the report as a PDF or as a Markdown file?"},
+  {"expect": "normal", "message": "The build is green and the PR is up for review: https://github.com/example/repo/pull/12"},
+
+  {"expect": "lazy_pause", "dangerous": true, "message": "Next I would run rm -rf dist and redeploy to production. Shall I continue?"},
+  {"expect": "lazy_pause", "dangerous": true, "message": "The fix is ready. Should I force push it to main?"},
+  {"expect": "lazy_pause", "dangerous": true, "message": "I've prepared the migration that drops the legacy users table. Shall I run it against the database?"}
+]
