@@ -1,7 +1,7 @@
 {
   "name": "adactus",
-  "version": "0.2.0",
-  "description": "Claude Code plugin whose Stop hook keeps Claude working past lazy pauses and premature completion claims.",
+  "version": "0.3.0",
+  "description": "Claude Code plugin whose Stop hook asks a System One model (Laya, decider or Jev) whether Claude should keep working.",
   "keywords": [
     "claude-code",
     "claude-code-plugin",
@@ -33,6 +33,8 @@
     "skills",
     "bin",
     "src",
+    "server",
+    "eval",
     "README.md",
     "LICENSE"
   ],
