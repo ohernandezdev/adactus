@@ -23,8 +23,9 @@ export const dangerPatterns = [
 ];
 
 // The user installed adactus to answer these check-ins on their behalf;
-// say so, or Claude reasonably keeps waiting for a human reply.
-const PREFIX = "adactus (a Stop hook the user installed to answer check-ins on their behalf): ";
+// say so, or Claude reasonably keeps waiting for a human reply. Claude Code
+// labels every blocking Stop hook "Stop hook error"; the prefix says it is not one.
+const PREFIX = "adactus (not an error: a Stop hook the user installed to answer check-ins on their behalf): ";
 
 export const REASONS = {
   lazy_pause:
