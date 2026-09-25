@@ -18,6 +18,13 @@ export const PRESETS = {
     url: "http://127.0.0.1:8000/v1/systemone",
     model: "Mapika/decider-4b",
     local: true,
+    // decider-4b on Apple MPS: ~3 s for 500 chars, ~8 s for 2000 (measured);
+    // the hook's own budget is 10 s.
+    timeoutMs: 8000,
+    // Tuned on half of the judge eval, confirmed on the held-out half:
+    // decider is well calibrated, so a low continueMin pushes more real
+    // pauses, and its danger judgment already covers what user_decision caught.
+    thresholds: { messageChars: 500, continueMin: 0.2, userDecisionMax: 1.01, claimMin: 0.5, unfinishedMin: 0.5, dangerMin: 0.5 },
     note: "Runs on this machine (CUDA, Apple MPS or CPU). Start it with the decider server, e.g. `scripts/serve.sh Mapika/decider-4b 8000`.",
   },
   jev: {
@@ -76,5 +83,5 @@ export function resolveBackend(choice, env = process.env) {
     if (!key) throw new BackendError(`backend "${choice.name}" needs the ${apiKeyEnv} environment variable`);
     headers.Authorization = `Bearer ${key}`;
   }
-  return { name: choice.name, url, model, headers, local, thresholds: preset.thresholds ?? {} };
+  return { name: choice.name, url, model, headers, local, timeoutMs: preset.timeoutMs, thresholds: preset.thresholds ?? {} };
 }
