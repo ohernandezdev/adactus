@@ -21,7 +21,7 @@ export async function classify(input, { home, env = process.env } = {}) {
 
   if (!config.enabled) {
     appendLog(root, { ...base, outcome: "disabled" });
-    writeSession(root, input.session_id, { consecutiveBlocks: 0 });
+    writeSession(root, input.session_id, { consecutiveBlocks: 0, lastBlocked: null });
     return null;
   }
 
@@ -33,7 +33,7 @@ export async function classify(input, { home, env = process.env } = {}) {
   } catch (err) {
     // No fallback: the stop goes through and the failure is visible.
     appendLog(root, { ...base, outcome: "error", error: err.message });
-    writeSession(root, input.session_id, { consecutiveBlocks: 0 });
+    writeSession(root, input.session_id, { consecutiveBlocks: 0, lastBlocked: null });
     throw err;
   }
 
@@ -47,6 +47,7 @@ export async function classify(input, { home, env = process.env } = {}) {
     backend: backend.name,
     model: verdict.model,
     ms: verdict.ms,
+    usage: verdict.usage,
     evidence: verdict.evidence,
     streak: result.session.consecutiveBlocks,
   });

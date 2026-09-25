@@ -83,6 +83,9 @@ test("off / on toggles the hook, and status shows backend and decisions", async 
     assert.equal(runCli(home, "on").status, 0);
     assert.match((await runHook(home, { last_assistant_message: "Shall I continue?" })).stdout, /"block"/);
 
+    const logged = fs.readFileSync(path.join(home, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    assert.deepEqual(logged.at(-1).usage, { input_tokens: 1, output_tokens: 0 });
+
     const status = runCli(home, "status");
     assert.match(status.stdout, /backend: custom \(fake\)/);
     assert.match(status.stdout, /disabled/);
