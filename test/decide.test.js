@@ -15,10 +15,11 @@ test("blocks a lazy pause and starts a streak", () => {
 });
 
 test("blocks a fake completion with the corrective reason", () => {
-  const verdict = { label: "fake_completion", dangerous: false };
+  const verdict = { label: "fake_completion", gaps: ["failing tests or unfixed errors"], dangerous: false };
   const result = decide({ input: {}, verdict, config: on, session: fresh });
   assert.equal(result.block, true);
-  assert.match(result.reason, /The task is incomplete/);
+  assert.match(result.reason, /The task is incomplete: .* mentions failing tests or unfixed errors\./);
+  assert.match(result.reason, /outside the task you were given, say so and stop/);
 });
 
 test("lets a normal stop through and resets the streak", () => {
@@ -69,4 +70,19 @@ test("dry-run records the decision without blocking", () => {
   const result = decide({ input: {}, verdict: lazy, config: { enabled: true, dryRun: true }, session: fresh });
   assert.equal(result.block, false);
   assert.equal(result.outcome, "dry_run_lazy_pause");
+});
+
+test("a fake completion is pushed once per chain, then Claude's answer is trusted", () => {
+  const verdict = { label: "fake_completion", gaps: ["next steps or remaining work"], dangerous: false };
+  const first = decide({ input: { stop_hook_active: false }, verdict, config: on, session: fresh });
+  assert.equal(first.block, true);
+  const second = decide({ input: { stop_hook_active: true }, verdict, config: on, session: first.session });
+  assert.equal(second.block, false);
+  assert.equal(second.outcome, "trusted_after_pushback");
+});
+
+test("a fake completion after a lazy-pause block is still pushed", () => {
+  const verdict = { label: "fake_completion", gaps: ["failing tests or unfixed errors"], dangerous: false };
+  const session = { consecutiveBlocks: 1, lastBlocked: "lazy_pause" };
+  assert.equal(decide({ input: { stop_hook_active: true }, verdict, config: on, session }).block, true);
 });
