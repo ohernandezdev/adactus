@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { BackendError, PRESETS, resolveBackend } from "../src/backends.js";
 import { judge } from "../src/judge.js";
-import { hasUv, isHealthy, runForeground, startDetached } from "../src/laya-server.js";
+import { ensureStarted, isHealthy, runForeground } from "../src/servers.js";
 import { adactusHome, readConfig, readLog, writeConfig } from "../src/state.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -20,13 +20,15 @@ const USAGE = `adactus <command>
 
 Backend (System One model that judges Claude's final message):
   use laya                     local Laya on this Mac (Apple Silicon)
-  use decider [--model M]      local decider server on :8000 (default Mapika/decider-4b)
+  use decider [--model M] [--dir D]
+                               local decider server on :8000 (default Mapika/decider-4b,
+                               checkout in ~/.adactus/decider); adactus starts it
   use jev                      TypeSafe cloud (needs TYPESAFE_API_KEY)
   use custom --url U --model M [--api-key-env VAR]
                                any server that speaks POST /v1/systemone
   doctor                       check the backend with a live request
   eval [cases.json]            accuracy and latency of the backend on labeled cases
-  serve laya                   run the Laya server in the foreground
+  serve laya|decider           run the local server in the foreground
 
 Hook:
   on | off                     enable or disable the Stop hook
@@ -44,7 +46,7 @@ function flags(args) {
   const out = {};
   for (let i = 0; i < args.length; i += 2) {
     const key = args[i]?.replace(/^--/, "");
-    if (!["url", "model", "api-key-env"].includes(key) || args[i + 1] === undefined) {
+    if (!["url", "model", "api-key-env", "dir"].includes(key) || args[i + 1] === undefined) {
       fail(`unexpected argument "${args[i]}"`, 2);
     }
     out[key] = args[i + 1];
@@ -63,6 +65,7 @@ function use(name, args) {
   if (f.url) choice.url = f.url;
   if (f.model) choice.model = f.model;
   if (f["api-key-env"]) choice.apiKeyEnv = f["api-key-env"];
+  if (f.dir) choice.dir = path.resolve(f.dir);
   try {
     resolveBackend(choice, { ...process.env, [choice.apiKeyEnv ?? PRESETS[name]?.apiKeyEnv ?? "_"]: "check" });
   } catch (err) {
@@ -85,13 +88,13 @@ async function doctor() {
   console.log(`backend: ${backend.name}  model: ${backend.model}  url: ${backend.url}`);
   if (!backend.local) console.log("note: requests leave this machine.");
 
-  if (backend.name === "laya" && !(await isHealthy(backend.url))) {
-    if (!hasUv()) fail("the Laya backend needs uv: https://docs.astral.sh/uv/");
-    console.log("starting the Laya server (the first start downloads its dependencies)...");
-    startDetached(backend, home);
-    const deadline = Date.now() + 180_000;
-    while (!(await isHealthy(backend.url)) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 1000));
-    if (!(await isHealthy(backend.url))) fail(`the Laya server did not start; see ${path.join(home, "laya-server.log")}`);
+  if (backend.local && !(await isHealthy(backend.url))) {
+    const { started, reason } = ensureStarted(backend, home);
+    console.log(reason);
+    if (!started && !/already starting/.test(reason)) fail("the backend is not answering and adactus cannot start it");
+    const deadline = Date.now() + 300_000;
+    while (!(await isHealthy(backend.url)) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 2000));
+    if (!(await isHealthy(backend.url))) fail(`the ${backend.name} server did not start; see ${path.join(home, `${backend.name}-server.log`)}`);
   }
 
   const probe = "I've written the parser and have a plan for the tests. Shall I continue?";
@@ -163,10 +166,12 @@ switch (command) {
   case "eval":
     await evaluate(rest[0]);
     break;
-  case "serve":
-    if (rest[0] !== "laya") fail("usage: adactus serve laya", 2);
-    process.exit(runForeground(resolveBackend(readConfig(home).backend?.name === "laya" ? readConfig(home).backend : { name: "laya" })));
+  case "serve": {
+    if (!["laya", "decider"].includes(rest[0])) fail("usage: adactus serve laya|decider", 2);
+    const current = readConfig(home).backend;
+    process.exit(runForeground(resolveBackend(current?.name === rest[0] ? current : { name: rest[0] })));
     break;
+  }
   case "on":
     writeConfig(home, { enabled: true });
     console.log("adactus is on.");

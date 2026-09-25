@@ -4,6 +4,7 @@
  */
 
 import { resolveBackend } from "./backends.js";
+import { ensureStarted } from "./servers.js";
 import { decide } from "./decide.js";
 import { judge } from "./judge.js";
 import { adactusHome, appendLog, readConfig, readSession, writeSession } from "./state.js";
@@ -31,6 +32,10 @@ export async function classify(input, { home, env = process.env } = {}) {
     backend = resolveBackend(config.backend, env);
     verdict = await judge(backend, input.last_assistant_message ?? "", config.thresholds);
   } catch (err) {
+    // A local server that is down gets started for the next stop.
+    if (backend?.local && /ECONNREFUSED/.test(err.message)) {
+      err.message += `; ${ensureStarted(backend, root).reason}`;
+    }
     // No fallback: the stop goes through and the failure is visible.
     appendLog(root, { ...base, outcome: "error", error: err.message });
     writeSession(root, input.session_id, { consecutiveBlocks: 0, lastBlocked: null });

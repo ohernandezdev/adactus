@@ -65,7 +65,7 @@ adactus ships a tiny server (`server/laya_server.py`) that loads
 [`convaiinnovations/laya`](https://huggingface.co/convaiinnovations/laya) with
 [`laya-mlx`](https://pypi.org/project/laya-mlx/) once and answers on
 `127.0.0.1:8765`. The `SessionStart` hook starts it in the background when it is
-not running; its log is `~/.adactus/laya-server.log`. Run it in the foreground
+not running (decider too, from `~/.adactus/decider` or `use decider --dir`); logs are `~/.adactus/<backend>-server.log`. Run it in the foreground
 with `adactus serve laya`.
 
 ### decider
