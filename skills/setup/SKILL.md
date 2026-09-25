@@ -5,7 +5,8 @@ disable-model-invocation: true
 Help the user pick an adactus backend, then configure and verify it.
 
 1. Ask the user which backend to use, with these options:
-   - **laya**: local, free, ~100ms per stop. Apple Silicon Macs only; needs `uv`.
+   - **laya**: local and free; `adactus eval` shows its measured latency. Apple Silicon
+     Macs only; needs `uv`.
      adactus starts its server automatically.
    - **decider**: local Mapika/decider model (CUDA, Apple MPS or CPU, also Windows).
      The user runs the decider server on port 8000 (see https://github.com/Mapika/decider).
