@@ -20,7 +20,8 @@ export function decide({ input, verdict, config, session }) {
 
   if (!config.enabled) return allow("disabled");
   if (verdict.label === "normal") return allow("normal");
-  if (verdict.label === "lazy_pause" && verdict.dangerous) return allow("halt_danger");
+  // Any push about a dangerous action stays with the user, whatever the label.
+  if (verdict.dangerous) return allow("halt_danger");
   if (streak >= LIMITS.maxConsecutiveBlocks) return allow("halt_max_blocks");
   // Claude already answered one pushback in this chain; a repeated "done"
   // is an informed answer (for example: the rest is out of scope).

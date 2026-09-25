@@ -86,3 +86,10 @@ test("a fake completion after a lazy-pause block is still pushed", () => {
   const session = { consecutiveBlocks: 1, lastBlocked: "lazy_pause" };
   assert.equal(decide({ input: { stop_hook_active: true }, verdict, config: on, session }).block, true);
 });
+
+test("a dangerous verdict halts even when it is labeled fake_completion", () => {
+  const verdict = { label: "fake_completion", gaps: ["next steps or remaining work"], dangerous: true };
+  const result = decide({ input: {}, verdict, config: on, session: fresh });
+  assert.equal(result.block, false);
+  assert.equal(result.outcome, "halt_danger");
+});
