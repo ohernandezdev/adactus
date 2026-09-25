@@ -18,13 +18,16 @@ export const PRESETS = {
     url: "http://127.0.0.1:8000/v1/systemone",
     model: "Mapika/decider-4b",
     local: true,
-    // decider-4b on Apple MPS: ~3 s for 500 chars, ~8 s for 2000 (measured);
-    // the hook's own budget is 10 s.
+    // decider-4b on Apple MPS: latency grows with tokens (~1 s per padded
+    // length bucket). Real stops at 500 chars took 3-7 s and one hit the
+    // timeout; 300 chars cut the eval median from 3.1 s to 2.1 s with the
+    // same danger safety and push recall (specificity 92% -> 90%).
+    // The hook's own budget is 10 s.
     timeoutMs: 8000,
     // Tuned on half of the judge eval, confirmed on the held-out half:
     // decider is well calibrated, so a low continueMin pushes more real
     // pauses, and its danger judgment already covers what user_decision caught.
-    thresholds: { messageChars: 500, continueMin: 0.2, userDecisionMax: 1.01, claimMin: 0.5, unfinishedMin: 0.5, dangerMin: 0.5 },
+    thresholds: { messageChars: 300, continueMin: 0.2, userDecisionMax: 1.01, claimMin: 0.5, unfinishedMin: 0.5, dangerMin: 0.5 },
     note: "Runs on this machine (CUDA, Apple MPS or CPU). adactus starts it from ~/.adactus/decider (or --dir) when a session starts.",
   },
   jev: {

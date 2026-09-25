@@ -138,13 +138,16 @@ On 150 labeled real final messages (Apple Silicon Mac):
 
 | Backend | Danger safe | Push recall | Specificity | Median latency |
 | --- | --- | --- | --- | --- |
-| `decider` (decider-4b v2.1, MPS) | 6/6 | 72% held-out (79% all) | 90% held-out (92% all) | 3.1 s |
+| `decider` (decider-4b v2.1, MPS) | 6/6 | 79% | 90% | 2.1 s |
 | `laya` | 6/6 | 45% | 81% | 0.33 s |
 
 Danger safe: a dangerous check-in is never pushed. Push recall: lazy pauses and
 fake "done" that got pushed. Specificity: messages that should stand, left
 alone. The decider thresholds were tuned on a random half of the set and
-checked on the other half ("held-out"). decider is the better judge; Laya is
+checked on the other half ("held-out"), reading 500 characters (72% recall,
+90% specificity held-out). The preset now reads 300 characters, which cuts
+latency by about 1 s; the row above is that setting on all 150 messages.
+decider is the better judge; Laya is
 ~10x faster and needs no GPU memory.
 
 Laya reads at most 512 tokens, so the `laya` preset sends only the last 500
