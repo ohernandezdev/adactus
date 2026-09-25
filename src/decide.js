@@ -8,7 +8,7 @@ import { LIMITS, REASONS } from "./config.js";
 /**
  * @param {object} args
  * @param {{stop_hook_active?: boolean}} args.input - Stop hook stdin JSON
- * @param {{label: string, evidence: string|null, dangerous: boolean}} args.verdict
+ * @param {{label: string, dangerous: boolean}} args.verdict - from judge.js
  * @param {{enabled: boolean, dryRun: boolean}} args.config
  * @param {{consecutiveBlocks: number}} args.session
  * @returns {{block: boolean, reason: string|null, outcome: string, session: {consecutiveBlocks: number}}}
