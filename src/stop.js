@@ -29,7 +29,7 @@ export async function classify(input, { home, env = process.env } = {}) {
   let backend;
   try {
     backend = resolveBackend(config.backend, env);
-    verdict = await judge(backend, input.last_assistant_message ?? "", { ...backend.thresholds, ...config.thresholds });
+    verdict = await judge(backend, input.last_assistant_message ?? "", config.thresholds);
   } catch (err) {
     // No fallback: the stop goes through and the failure is visible.
     appendLog(root, { ...base, outcome: "error", error: err.message });

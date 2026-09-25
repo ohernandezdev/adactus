@@ -79,7 +79,9 @@ export function interpret(answers, message, thresholds = {}) {
  * @param {string} finalMessage
  * @param {Partial<typeof LIMITS>} [thresholds]
  */
-export async function judge(backend, finalMessage, thresholds) {
+export async function judge(backend, finalMessage, overrides) {
+  // Backend preset first, then the user's config overrides.
+  const thresholds = { ...backend.thresholds, ...overrides };
   const message = (finalMessage ?? "").slice(-({ ...LIMITS, ...thresholds }.messageChars));
   const started = Date.now();
   const response = await askSystemOne(backend, { final_message: message }, QUESTIONS, {

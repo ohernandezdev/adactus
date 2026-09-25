@@ -56,3 +56,14 @@ test("judge sends the final message as state with every question", async () => {
     await fake.close();
   }
 });
+
+test("judge applies the backend preset thresholds, and config overrides win", async () => {
+  const fake = await startFakeSystemOne((id) => (id === "asks_to_continue" ? 0.3 : 0.05));
+  try {
+    const backend = { ...resolveBackend({ name: "custom", url: fake.url, model: "m" }), thresholds: { continueMin: 0.2 } };
+    assert.equal((await judge(backend, "Shall I continue?")).label, "lazy_pause");
+    assert.equal((await judge(backend, "Shall I continue?", { continueMin: 0.5 })).label, "normal");
+  } finally {
+    await fake.close();
+  }
+});
