@@ -80,7 +80,7 @@ export function interpret(answers, message, thresholds = {}) {
  * @param {Partial<typeof LIMITS>} [thresholds]
  */
 export async function judge(backend, finalMessage, thresholds) {
-  const message = (finalMessage ?? "").slice(-LIMITS.messageChars);
+  const message = (finalMessage ?? "").slice(-({ ...LIMITS, ...thresholds }.messageChars));
   const started = Date.now();
   const response = await askSystemOne(backend, { final_message: message }, QUESTIONS, {
     timeoutMs: backend.local ? LIMITS.localTimeoutMs : LIMITS.remoteTimeoutMs,
