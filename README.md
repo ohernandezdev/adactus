@@ -5,12 +5,14 @@
 adactus is a Claude Code plugin that keeps Claude working. When Claude ends a
 turn with a lazy check-in ("Shall I continue?") or says the task is complete
 while its own message still lists TODOs, failing tests or next steps, a native
-`Stop` hook blocks the stop and tells Claude to keep going. When the check-in
-is about something dangerous, or the push repeats without progress, adactus
-lets the stop through and the decision stays with you.
+`Stop` hook blocks the stop and tells Claude to keep going. When the check-in is
+about something dangerous, or the push repeats without progress, adactus lets
+the stop through and the decision stays with you.
 
-It has no dependencies, needs no build step, and works wherever Claude Code
-runs (macOS, Linux, Windows).
+The judgment comes from a **System One model**: a small, fast decision model
+that returns calibrated probabilities instead of generating text. adactus
+supports three of them through the same wire format, and any new one that
+speaks it.
 
 ## Install
 
@@ -21,126 +23,148 @@ In Claude Code:
 /plugin install adactus@adactus
 ```
 
-Then restart Claude Code (or run `/reload-plugins` if your version has it).
-Requires Node.js >= 20 on your PATH, which the hook uses to run.
+Restart Claude Code, then pick a model:
 
-From a terminal, the same thing:
-
-```sh
-claude plugin marketplace add ohernandezdev/adactus
-claude plugin install adactus@adactus
+```text
+/adactus:setup
 ```
 
-To try it for one session without installing:
+Requires Node.js >= 20 on your PATH.
+
+## Pick a System One model
+
+| Backend   | Runs on                                   | Cost per stop | Setup |
+| --------- | ----------------------------------------- | ------------- | ----- |
+| `laya`    | this Mac, Apple Silicon (MLX)             | free, ~120 ms | [`uv`](https://docs.astral.sh/uv/) installed; adactus starts the server itself |
+| `decider` | this machine: CUDA, Apple MPS or CPU (Windows too) | free | run the [decider](https://github.com/Mapika/decider) server on port 8000 |
+| `jev`     | TypeSafe cloud                            | TypeSafe pricing | `TYPESAFE_API_KEY` in your environment |
+| `custom`  | anything that speaks `POST /v1/systemone` | yours         | a URL and a model name |
+
+`/adactus:setup` walks you through it. From a terminal, the same commands:
 
 ```sh
-git clone https://github.com/ohernandezdev/adactus.git
-claude --plugin-dir ./adactus
+node <plugin>/bin/adactus.js use laya
+node <plugin>/bin/adactus.js use decider --model Mapika/decider-4b
+node <plugin>/bin/adactus.js use jev
+node <plugin>/bin/adactus.js use custom --url http://127.0.0.1:9000/v1/systemone --model my-model
+node <plugin>/bin/adactus.js doctor     # live check
 ```
 
-Uninstall with `/plugin uninstall adactus@adactus`.
+A new System One model is a `use custom` (or a new preset), never new code:
+all backends speak the [TypeSafe wire format](https://docs.typesafe.ai/api.md)
+(`{state, model, questions}` in, typed `answers` with probabilities out).
+
+**Privacy.** `laya` and `decider` never leave your machine. `jev` sends
+Claude's final message of every turn to `api.typesafe.ai`; do not use it for
+sessions that handle confidential or regulated data. Remote custom backends
+must use https.
+
+### Laya
+
+adactus ships a tiny server (`server/laya_server.py`) that loads
+[`convaiinnovations/laya`](https://huggingface.co/convaiinnovations/laya) with
+[`laya-mlx`](https://pypi.org/project/laya-mlx/) once and answers on
+`127.0.0.1:8765`. The `SessionStart` hook starts it in the background when it is
+not running; its log is `~/.adactus/laya-server.log`. Run it in the foreground
+with `adactus serve laya`.
+
+### decider
+
+Serve a [decider](https://github.com/Mapika/decider) model with its own server,
+for example `scripts/serve.sh Mapika/decider-4b 8000`. It exposes
+`POST /v1/systemone`, which is what adactus calls.
 
 ## Commands
 
-| Command            | Effect                                                   |
-| ------------------ | -------------------------------------------------------- |
-| `/adactus:status`  | show whether adactus is on and its last decisions        |
-| `/adactus:off`     | let every stop through until you turn it back on         |
-| `/adactus:on`      | turn it back on                                          |
+| Command           | Effect                                          |
+| ----------------- | ----------------------------------------------- |
+| `/adactus:setup`  | choose and check the System One backend          |
+| `/adactus:status` | mode, backend and the last decisions             |
+| `/adactus:off`    | let every stop through until you turn it back on |
+| `/adactus:on`     | turn it back on                                  |
 
-The same switches work from a terminal with `node <plugin>/bin/adactus.js
-on|off|status|dry-run on|off`. Setting `ADACTUS_DISABLED=1` in the
-environment turns the hook off for that environment only.
+`ADACTUS_DISABLED=1` in the environment turns the hook off for that
+environment only. `adactus dry-run on` logs decisions without blocking.
 
 ## How it works
 
-Every time Claude is about to end its turn, Claude Code runs the `Stop` hook
-with the final assistant message (`last_assistant_message`). adactus
-classifies it:
+On every stop, adactus asks the model eight narrow yes/no questions (`noul`)
+about `last_assistant_message`, in one request:
+
+| Question            | Meaning                                                    |
+| ------------------- | ---------------------------------------------------------- |
+| `asks_to_continue`  | ends by asking whether to continue or go ahead             |
+| `user_decision`     | asks for something only the user can decide or provide     |
+| `dangerous`         | proposes deleting data, force pushing, deploying, credentials |
+| `claims_done`       | says the task is finished                                  |
+| `not_done_yet`, `next_steps`, `leftovers`, `failing_tests` | signs of unfinished work |
+
+Code owns the policy:
 
 ```text
-                   Claude ends its turn
-                            │
-                            ▼
-          Stop hook: classify last_assistant_message
-                            │
-       ┌────────────────────┼────────────────────────┐
-       ▼                    ▼                        ▼
-  lazy_pause          fake_completion             normal
-  "Shall I continue?" "done" + TODO / failing     anything else
-       │              tests / next steps            │
-       │                    │                       │
-       ▼                    ▼                       ▼
-  dangerous?  ──yes──►  let the stop through  ◄─────┘
-       │no                  ▲
-       ▼                    │
-  3 blocks in a row? ─yes───┘
-       │no
-       ▼
-  {"decision": "block", "reason": "... Continue ..."}
-  Claude keeps working
+asks_to_continue >= 0.7 and user_decision < 0.5      -> lazy_pause
+claims_done >= 0.5 and max(unfinished signals) >= 0.3 -> fake_completion
+otherwise                                            -> normal
+
+lazy_pause + dangerous (model >= 0.5 or hard regex guard) -> hand back to you
+3 blocks in a row                                        -> hand back to you
+lazy_pause / fake_completion                             -> {"decision": "block", "reason": ...}
 ```
 
-- **lazy_pause**: Claude asks permission for work that follows from the task.
-  adactus answers "Continue" and tells Claude to work autonomously.
-- **fake_completion**: Claude claims the task is complete *and* the same
-  message shows it is not (TODO, placeholder, "next steps", "you will need
-  to", failing tests, "couldn't"). adactus answers "The task is incomplete.
-  Inspect files and continue working until fully operational." A completion
-  claim without that evidence is trusted.
-- **normal**: real questions ("Postgres or SQLite?"), summaries and genuine
-  completions go through untouched.
+Small, concrete questions that name the field they read work far better than
+one three-way choice: on Laya a single `choice` got 1 of 7 cases right, the
+decomposed questions 6 of 7. Thresholds can be overridden per backend with a
+`thresholds` object in `~/.adactus/config.json`.
 
-The block reason tells Claude that adactus is a hook you installed to answer
-check-ins on your behalf. Without that, Claude reasonably keeps waiting for a
-human.
+### Measured
+
+`adactus eval` runs `eval/cases.json` (31 labeled final messages) against the
+configured backend. Laya on an Apple Silicon Mac:
+
+```text
+23/31 labels correct, 3/3 dangerous pauses flagged
+0 pushes on finished work, 4 lazy pauses not pushed
+latency: median ~120 ms
+```
+
+The defaults favor precision: a missed push costs you one reply, a wrong push
+nags a finished Claude. 31 cases is a small set; run `adactus eval` on your
+backend before trusting a threshold, and send more cases.
 
 ## Safety limits
 
-- **Dangerous check-ins stay with you.** A pause that mentions `rm -rf`,
-  force pushes, `DROP TABLE`, deploys, releases, production, migrations,
-  deletes, `sudo`, credentials, tokens or secrets is never answered.
-- **Three consecutive blocks at most.** After three blocks in the same stop
-  chain adactus lets the stop through. Claude Code itself overrides any Stop
-  hook after 8.
-- **Permission prompts are untouched.** adactus only acts on the Stop event;
-  tool permission dialogs stay with you.
-- **Failures never block.** If the hook input is broken or the classifier
-  fails, the hook exits with an error message and the stop goes through.
+- **Dangerous check-ins stay with you**: the model's `dangerous` judgment plus a
+  hard regex guard (`rm -rf`, force push, `DROP TABLE`, deploy, production,
+  migrations, credentials...).
+- **Three consecutive blocks at most**; Claude Code itself overrides a Stop hook
+  after 8.
+- **Permission prompts are untouched.** adactus only acts on the Stop event.
+- **No silent fallback.** If the backend is not configured, unreachable or
+  answers badly, the hook exits with an error you can see, the stop goes
+  through, and `/adactus:status` logs it.
 
 ## Decision log
 
-Every decision is appended to `~/.adactus/log.jsonl` (override the folder
-with `ADACTUS_HOME`) and shown by `/adactus:status`. Dry-run mode
-(`adactus dry-run on`) logs what adactus would do without blocking anything,
-which is a good way to see how it behaves on your sessions first.
-
-## Custom classifier (optional)
-
-Set `LAYA_ENDPOINT` to an `http://localhost` (or `127.0.0.1` / `::1`) URL to
-replace the built-in pattern matcher with your own model. adactus POSTs
-`{"message": "<final assistant message>"}` and expects
-`{"label": "normal" | "lazy_pause" | "fake_completion", "evidence": "..."}`.
-Non-local hosts are rejected. If the endpoint fails, the stop goes through
-with an error; adactus never silently falls back to the heuristic.
+Every decision, with the model's probabilities and latency, is appended to
+`~/.adactus/log.jsonl` (override the folder with `ADACTUS_HOME`).
 
 ## Known limitations
 
-- The built-in classifier is pattern-based, not a trained model. Unusual
-  phrasing can slip past it, and it only reads the final message of the turn.
-- Context compaction is out of scope: Claude Code hooks cannot trigger
-  `/compact`, and Claude Code already compacts on its own.
-- Codex CLI and OpenCode are not supported yet. An earlier PTY-wrapper
-  version that supervises any terminal agent lives on the
-  [`pty-wrapper`](https://github.com/ohernandezdev/adactus/tree/pty-wrapper)
+- adactus only reads Claude's final message of the turn, not the whole task.
+- Context compaction is out of scope: hooks cannot trigger `/compact`, and
+  Claude Code compacts on its own.
+- Laya needs Apple Silicon. On Windows or Linux use decider or Jev.
+- Codex CLI and OpenCode are not supported yet. An earlier PTY-wrapper version
+  lives on the [`pty-wrapper`](https://github.com/ohernandezdev/adactus/tree/pty-wrapper)
   branch.
 
 ## Development
 
 ```sh
-npm test                                   # node:test, no dependencies
-claude plugin validate .                   # validate the manifests
-claude --plugin-dir . -p "..."             # run Claude with the local plugin
+npm test                       # node:test, no dependencies
+claude plugin validate .       # validate the manifests
+claude --plugin-dir . -p "..." # run Claude with the local plugin
+node bin/adactus.js eval       # accuracy and latency of the configured backend
 ```
 
 ## License
