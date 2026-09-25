@@ -20,10 +20,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm test
-      - name: hook smoke test
+      - name: hook without a backend fails visibly and never blocks
         shell: bash
         run: |
+          set +e
           out=$(echo '{"session_id":"ci","last_assistant_message":"Plan ready. Shall I continue?","stop_hook_active":false}' \
-            | ADACTUS_HOME="$RUNNER_TEMP/adactus" node hooks/stop.js)
-          echo "$out"
-          echo "$out" | grep -q '"decision":"block"'
+            | ADACTUS_HOME="$RUNNER_TEMP/adactus" node hooks/stop.js 2>err.txt)
+          code=$?
+          cat err.txt
+          test "$code" = 1 && test -z "$out" && grep -q "no System One backend configured" err.txt
