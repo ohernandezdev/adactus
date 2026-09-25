@@ -83,7 +83,7 @@ export async function judge(backend, finalMessage, thresholds) {
   const message = (finalMessage ?? "").slice(-({ ...LIMITS, ...thresholds }.messageChars));
   const started = Date.now();
   const response = await askSystemOne(backend, { final_message: message }, QUESTIONS, {
-    timeoutMs: backend.local ? LIMITS.localTimeoutMs : LIMITS.remoteTimeoutMs,
+    timeoutMs: backend.timeoutMs ?? (backend.local ? LIMITS.localTimeoutMs : LIMITS.remoteTimeoutMs),
   });
   for (const id of Object.keys(QUESTIONS)) {
     if (typeof response.answers[id].noul !== "number") {
