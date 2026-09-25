@@ -25,7 +25,7 @@ export const PRESETS = {
     // decider is well calibrated, so a low continueMin pushes more real
     // pauses, and its danger judgment already covers what user_decision caught.
     thresholds: { messageChars: 500, continueMin: 0.2, userDecisionMax: 1.01, claimMin: 0.5, unfinishedMin: 0.5, dangerMin: 0.5 },
-    note: "Runs on this machine (CUDA, Apple MPS or CPU). Start it with the decider server, e.g. `scripts/serve.sh Mapika/decider-4b 8000`.",
+    note: "Runs on this machine (CUDA, Apple MPS or CPU). adactus starts it from ~/.adactus/decider (or --dir) when a session starts.",
   },
   jev: {
     url: "https://api.typesafe.ai/v1/systemone",
@@ -83,5 +83,5 @@ export function resolveBackend(choice, env = process.env) {
     if (!key) throw new BackendError(`backend "${choice.name}" needs the ${apiKeyEnv} environment variable`);
     headers.Authorization = `Bearer ${key}`;
   }
-  return { name: choice.name, url, model, headers, local, timeoutMs: preset.timeoutMs, thresholds: preset.thresholds ?? {} };
+  return { name: choice.name, url, model, headers, local, dir: choice.dir, timeoutMs: preset.timeoutMs, thresholds: preset.thresholds ?? {} };
 }

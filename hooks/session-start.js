@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 /**
- * Claude Code SessionStart hook: when the configured backend is Laya and
- * its local server is not answering, start it in the background so the
- * Stop hook has a model to ask. Other backends are left alone.
+ * Claude Code SessionStart hook: when the configured backend is a local
+ * server adactus can start (Laya, decider) and it is not answering, start
+ * it in the background so the Stop hook has a model to ask.
  */
 
 import { resolveBackend } from "../src/backends.js";
-import { hasUv, isHealthy, startDetached } from "../src/laya-server.js";
+import { ensureStarted, isHealthy } from "../src/servers.js";
 import { adactusHome, readConfig } from "../src/state.js";
 
 const home = adactusHome();
 const config = readConfig(home);
 
-if (config.enabled && config.backend?.name === "laya" && process.env.ADACTUS_DISABLED !== "1") {
+if (config.enabled && config.backend?.name && process.env.ADACTUS_DISABLED !== "1") {
   const backend = resolveBackend(config.backend);
-  if (!(await isHealthy(backend.url))) {
-    if (!hasUv()) {
-      process.stderr.write("adactus: the Laya backend needs uv (https://docs.astral.sh/uv/) to start its server\n");
+  if (backend.local && !(await isHealthy(backend.url))) {
+    const { started, reason } = ensureStarted(backend, home);
+    if (!started && !/already starting|does not start/.test(reason)) {
+      process.stderr.write(`adactus: ${reason}\n`);
       process.exit(1);
     }
-    startDetached(backend, home);
   }
 }
